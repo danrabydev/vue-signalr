@@ -1,0 +1,45 @@
+{
+  "name": "vue-signalr",
+  "version": "0.0.1",
+  "description": "Microsoft SignalR Plugin for Vue",
+  "main": "/dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/danrabydev/vue-signalr.git"
+  },
+  "keywords": [
+    "vue",
+    "signalr",
+    "vuejs"
+  ],
+  "author": "Dan Raby <me@danraby.me>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/danrabydev/vue-signalr/issues"
+  },
+  "homepage": "https://github.com/danrabydev/vue-signalr#readme",
+  "dependencies": {
+    "@microsoft/signalr": "^3.1.7"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.11.4",
+    "@babel/node": "^7.10.5",
+    "@babel/preset-env": "^7.11.0",
+    "@babel/preset-typescript": "^7.10.4",
+    "@types/jest": "^26.0.10",
+    "@types/node": "^14.6.0",
+    "@types/sinon": "^9.0.5",
+    "@vue/cli-plugin-unit-jest": "^4.5.4",
+    "eslint": "^7.7.0",
+    "jest": "^26.4.2",
+    "sinon": "^9.0.3",
+    "ts-jest": "^26.2.0",
+    "typescript": "^4.0.2",
+    "vue": "^2.6.12"
+  }
+}
