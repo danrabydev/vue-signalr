@@ -1,4 +1,4 @@
-import { SignalRPlugin } from './index';
+import { SignalRPlugin } from './Index';
 import sinon, { fake } from 'sinon';
 import Vue from 'vue'; // <-- notice the changed import
 

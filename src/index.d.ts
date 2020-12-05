@@ -1,7 +1,5 @@
-import { VueSignalR } from './index';
 import Vue from 'vue';
-import { HubConfig } from './hub';
-
+import { VueSignalR, HubConfig } from './Index';
 
 declare module 'vue/types/vue' {
   // Global properties can be declared

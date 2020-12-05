@@ -1,17 +1,26 @@
-/// <reference path="../src/index.d.ts" />
+/// <reference path="../src/Index.d.ts" />
 /// <reference types="node" />
-import { EventEmitter } from 'events';
 import Vue from 'vue';
+import { EventEmitter } from 'events';
 import { HubConnection } from '@microsoft/signalr';
 import { InspectOptions } from 'util';
-import { HubConfig } from './hub';
-declare class Log {
+export declare class Log {
     enabled: boolean;
     constructor(enabled: boolean);
     log(...args: any[]): void;
     dir(obj: any, options?: InspectOptions | undefined): void;
     table(obj: any): void;
 }
+export declare const HUB_STARTED = "HUB_STARTED";
+export declare const HUB_STOPPED = "HUB_STOPPED";
+export interface HubConfig<V extends Vue> {
+    autoReconnect?: boolean;
+    requiresAuthentication?: boolean;
+    listeners: Record<string, {
+        (...args: any[]): any;
+    }>;
+}
+export declare const defaultHubConfig: HubConfig<Vue>;
 export declare class Hub<V extends Vue> extends EventEmitter {
     options: HubConfig<V>;
     socket: HubConnection | null;
@@ -32,6 +41,9 @@ export declare class Hub<V extends Vue> extends EventEmitter {
     stop(): Promise<void>;
     authenticate(): void;
 }
+export declare function mapHubs(hubNames: string[]): Record<string, {
+    (): Hub<Vue>;
+}>;
 export declare class VueSignalR extends EventEmitter {
     hubs: Record<string, Hub<Vue>>;
     log: Log;
@@ -39,11 +51,8 @@ export declare class VueSignalR extends EventEmitter {
     constructor(baseUrl: string, log: Log, options?: any);
     registerHub(vue: Vue, name: string, options: HubConfig<Vue>): Promise<void>;
 }
-export declare function SignalRPlugin(vue: typeof Vue, options: {
+declare function SignalRPlugin(vue: typeof Vue, options: {
     baseUrl: string;
     log?: boolean;
 }): void;
-export declare function mapHubs(hubNames: string[]): Record<string, {
-    (): Hub<Vue>;
-}>;
 export default SignalRPlugin;

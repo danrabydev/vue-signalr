@@ -75,36 +75,10 @@ var __spreadArrays = (this && this.__spreadArrays) || function () {
     return r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.VueSignalR = exports.mapHubs = exports.Hub = exports.defaultHubConfig = exports.HUB_STOPPED = exports.HUB_STARTED = exports.Log = void 0;
+exports.defaultHubConfig = void 0;
 var events_1 = require("events");
 var SignalR = __importStar(require("@microsoft/signalr"));
-var Log = /** @class */ (function () {
-    function Log(enabled) {
-        this.enabled = enabled;
-        if (!enabled) {
-            this.log = function () { };
-            this.dir = function () { };
-            this.table = function () { };
-        }
-    }
-    Log.prototype.log = function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
-        this.enabled && console.log.apply(console, args);
-    };
-    Log.prototype.dir = function (obj, options) {
-        this.enabled && console.dir(obj, options);
-    };
-    Log.prototype.table = function (obj) {
-        this.enabled && console.table(obj);
-    };
-    return Log;
-}());
-exports.Log = Log;
-exports.HUB_STARTED = 'HUB_STARTED';
-exports.HUB_STOPPED = 'HUB_STOPPED';
+var HubEvents_1 = require("./HubEvents");
 exports.defaultHubConfig = {
     autoReconnect: true,
     requiresAuthentication: false,
@@ -127,12 +101,12 @@ var Hub = /** @class */ (function (_super) {
         _this.options = Object.assign({}, exports.defaultHubConfig, options);
         if (!_this.options.requiresAuthentication)
             _this.init();
-        _this.on(exports.HUB_STARTED, function () {
-            log.log("Event: " + exports.HUB_STARTED);
+        _this.on(HubEvents_1.HUB_STARTED, function () {
+            log.log("Event: " + HubEvents_1.HUB_STARTED);
             _this.connected = true;
         });
-        _this.on(exports.HUB_STOPPED, function () {
-            log.log("Event: " + exports.HUB_STOPPED);
+        _this.on(HubEvents_1.HUB_STOPPED, function () {
+            log.log("Event: " + HubEvents_1.HUB_STOPPED);
             _this.connected = false;
         });
         return _this;
@@ -164,10 +138,10 @@ var Hub = /** @class */ (function (_super) {
         var connection = builder.build();
         var methods = Object.keys(this.options.listeners);
         methods.forEach(function (listener) {
-            _this.once(exports.HUB_STARTED, function () {
+            if (_this.listening.includes(listener))
+                return;
+            _this.once(HubEvents_1.HUB_STARTED, function () {
                 var _a;
-                if (_this.listening.includes(listener))
-                    return;
                 _this.listening.push(listener);
                 (_a = _this.socket) === null || _a === void 0 ? void 0 : _a.on(listener, function () {
                     var _a;
@@ -178,9 +152,6 @@ var Hub = /** @class */ (function (_super) {
                     (_a = _this.options.listeners[listener]).call.apply(_a, __spreadArrays([_this.vue], data));
                 });
             });
-        });
-        connection.onclose(function () {
-            _this.listening = [];
         });
         return connection;
     };
@@ -195,7 +166,7 @@ var Hub = /** @class */ (function (_super) {
                         return [4 /*yield*/, ((_a = this.socket) === null || _a === void 0 ? void 0 : _a.start())];
                     case 2:
                         _b.sent();
-                        this.emit(exports.HUB_STARTED);
+                        this.emit(HubEvents_1.HUB_STARTED);
                         return [2 /*return*/];
                 }
             });
@@ -213,7 +184,7 @@ var Hub = /** @class */ (function (_super) {
             (_a = this.socket).send.apply(_a, __spreadArrays([methodName], args));
             return;
         }
-        this.once(exports.HUB_STARTED, function () { var _a; return (_a = _this.socket) === null || _a === void 0 ? void 0 : _a.send.apply(_a, __spreadArrays([methodName], args)); });
+        this.once(HubEvents_1.HUB_STARTED, function () { var _a; return (_a = _this.socket) === null || _a === void 0 ? void 0 : _a.send.apply(_a, __spreadArrays([methodName], args)); });
     };
     Hub.prototype.invoke = function (methodName) {
         var _a;
@@ -229,7 +200,7 @@ var Hub = /** @class */ (function (_super) {
         return new Promise(function (resolve) { return __awaiter(_this, void 0, void 0, function () {
             var _this = this;
             return __generator(this, function (_a) {
-                return [2 /*return*/, this.once(exports.HUB_STARTED, function () { var _a; return resolve((_a = _this.socket) === null || _a === void 0 ? void 0 : _a.invoke.apply(_a, __spreadArrays([methodName], args))); })];
+                return [2 /*return*/, this.once(HubEvents_1.HUB_STARTED, function () { var _a; return resolve((_a = _this.socket) === null || _a === void 0 ? void 0 : _a.invoke.apply(_a, __spreadArrays([methodName], args))); })];
             });
         }); });
     };
@@ -243,7 +214,7 @@ var Hub = /** @class */ (function (_super) {
                         _b.sent();
                         this.socket = null;
                         this.listening = [];
-                        this.emit(exports.HUB_STOPPED);
+                        this.emit(HubEvents_1.HUB_STOPPED);
                         return [2 /*return*/];
                 }
             });
@@ -252,87 +223,5 @@ var Hub = /** @class */ (function (_super) {
     Hub.prototype.authenticate = function () { };
     return Hub;
 }(events_1.EventEmitter));
-exports.Hub = Hub;
-function mapHubs(hubNames) {
-    var computedList = {};
-    hubNames.forEach(function (hubName) {
-        computedList[hubName] = function () {
-            return this.$signalr.hubs[hubName];
-        };
-    });
-    return computedList;
-}
-exports.mapHubs = mapHubs;
-var VueSignalR = /** @class */ (function (_super) {
-    __extends(VueSignalR, _super);
-    function VueSignalR(baseUrl, log, options) {
-        var _this = _super.call(this) || this;
-        _this.hubs = {};
-        _this.log = log;
-        _this.baseUrl = baseUrl;
-        return _this;
-    }
-    VueSignalR.prototype.registerHub = function (vue, name, options) {
-        return __awaiter(this, void 0, void 0, function () {
-            return __generator(this, function (_a) {
-                if (this.hubs[name]) {
-                    this.hubs[name].stop();
-                    delete this.hubs[name];
-                }
-                this.hubs[name] = new Hub(vue, this.baseUrl, name, options, this.log);
-                return [2 /*return*/];
-            });
-        });
-    };
-    return VueSignalR;
-}(events_1.EventEmitter));
-exports.VueSignalR = VueSignalR;
-function SignalRPlugin(vue, options) {
-    var _a;
-    var log = new Log((_a = options === null || options === void 0 ? void 0 : options.log) !== null && _a !== void 0 ? _a : false);
-    var signalr = new VueSignalR(options.baseUrl, log);
-    console.log('Created VueSignalR');
-    Object.defineProperties(vue.prototype, {
-        $signalr: {
-            get: function () {
-                return signalr;
-            },
-        },
-    });
-    vue.mixin({
-        created: function () {
-            return __awaiter(this, void 0, void 0, function () {
-                var hubs, signalr, hubNames;
-                var _this = this;
-                return __generator(this, function (_a) {
-                    hubs = this.$options.hubs;
-                    signalr = this.$signalr;
-                    if (!hubs)
-                        return [2 /*return*/];
-                    hubNames = Object.keys(hubs);
-                    if (!hubNames.length)
-                        return [2 /*return*/];
-                    log.log('VueSignalR:Created:' + this.$options.name);
-                    hubNames.forEach(function (hubName) { return __awaiter(_this, void 0, void 0, function () {
-                        var hubConfig;
-                        return __generator(this, function (_a) {
-                            switch (_a.label) {
-                                case 0:
-                                    hubConfig = hubs[hubName];
-                                    if (!hubConfig)
-                                        return [2 /*return*/];
-                                    return [4 /*yield*/, signalr.registerHub(this, hubName, hubConfig)];
-                                case 1:
-                                    _a.sent();
-                                    return [2 /*return*/];
-                            }
-                        });
-                    }); });
-                    log.dir(signalr);
-                    return [2 /*return*/];
-                });
-            });
-        },
-    });
-}
-exports.default = SignalRPlugin;
+exports.default = Hub;
+//# sourceMappingURL=Hub.js.map

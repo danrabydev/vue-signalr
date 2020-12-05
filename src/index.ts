@@ -1,16 +1,11 @@
-/// <reference path="./index.d.ts" />
+/// <reference path="./Index.d.ts" />
+import Vue from 'vue'; // <-- notice the changed import
 import { EventEmitter } from 'events';
 import * as SignalR from '@microsoft/signalr';
-import Vue from 'vue'; // <-- notice the changed import
 import { HubConnection } from '@microsoft/signalr';
 import { InspectOptions } from 'util';
-import { HubConfig } from './hub';
 
-// EVENTS
-const HUB_STARTED = 'HUB_STARTED';
-const HUB_STOPPED = 'HUB_STOPPED';
-
-class Log {
+export class Log {
   enabled: boolean;
   constructor(enabled: boolean) {
     this.enabled = enabled;
@@ -34,7 +29,16 @@ class Log {
   }
 }
 
-const defaultHubConfig: HubConfig<Vue> = {
+export const HUB_STARTED = 'HUB_STARTED';
+export const HUB_STOPPED = 'HUB_STOPPED';
+
+export interface HubConfig<V extends Vue> {
+  autoReconnect?: boolean;
+  requiresAuthentication?: boolean;
+  listeners: Record<string, { (...args: any[]): any }>;
+}
+
+export const defaultHubConfig: HubConfig<Vue> = {
   autoReconnect: true,
   requiresAuthentication: false,
   listeners: {},
@@ -92,7 +96,7 @@ export class Hub<V extends Vue> extends EventEmitter {
 
     this.initialized = true;
   }
-
+00330-80818-81510-AA205
   buildSocket(): HubConnection {
     const builder = new SignalR.HubConnectionBuilder().withUrl(
       `${this.urlBase}/${this.name}`
@@ -105,14 +109,17 @@ export class Hub<V extends Vue> extends EventEmitter {
     const methods = Object.keys(this.options.listeners);
 
     methods.forEach((listener) => {
-      if (this.listening.includes(listener)) return;
-
       this.once(HUB_STARTED, () => {
+        if (this.listening.includes(listener)) return;
         this.listening.push(listener);
         this.socket?.on(listener, (...data: any[]) => {
           this.options.listeners[listener].call(this.vue, ...data);
         });
       });
+    });
+
+    connection.onclose(() => {
+      this.listening = [];
     });
 
     return connection;
@@ -159,6 +166,18 @@ export class Hub<V extends Vue> extends EventEmitter {
   authenticate() {}
 }
 
+export function mapHubs(hubNames: string[]): Record<string, { (): Hub<Vue> }> {
+  const computedList: Record<string, { (): Hub<Vue> }> = {};
+
+  hubNames.forEach((hubName) => {
+    computedList[hubName] = function (this: Vue) {
+      return this.$signalr.hubs[hubName];
+    };
+  });
+
+  return computedList;
+}
+
 export class VueSignalR extends EventEmitter {
   public hubs: Record<string, Hub<Vue>> = {};
   log: Log;
@@ -172,20 +191,14 @@ export class VueSignalR extends EventEmitter {
 
   async registerHub(vue: Vue, name: string, options: HubConfig<Vue>) {
     if (this.hubs[name]) {
-      if (
-        this.hubs[name].socket?.state !== SignalR.HubConnectionState.Connected
-      ) {
-        this.hubs[name].stop();
-        delete this.hubs[name];
-      } else {
-        return;
-      }
+      this.hubs[name].stop();
+      delete this.hubs[name];
     }
     this.hubs[name] = new Hub(vue, this.baseUrl, name, options, this.log);
   }
 }
 
-export function SignalRPlugin(
+function SignalRPlugin(
   vue: typeof Vue,
   options: { baseUrl: string; log?: boolean }
 ): void {
@@ -225,18 +238,6 @@ export function SignalRPlugin(
     //   log.log('VueSignalR:Destroyed');
     // },
   });
-}
-
-export function mapHubs(hubNames: string[]): Record<string, { (): Hub<Vue> }> {
-  const computedList: Record<string, { (): Hub<Vue> }> = {};
-
-  hubNames.forEach((hubName) => {
-    computedList[hubName] = function (this: Vue) {
-      return this.$signalr.hubs[hubName];
-    };
-  });
-
-  return computedList;
 }
 
 export default SignalRPlugin;
